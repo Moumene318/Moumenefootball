@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة مدير فني - تسجيل الدخول</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #1a202c; /* bg-gray-900 */
+        }
+        .player-card-pro, .player-slot, .tab-btn, .team-card {
+            transition: all 0.2s ease-in-out;
+        }
+        .team-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .pitch {
+            background-image: 
+                linear-gradient(rgba(22, 163, 74, 0.8), rgba(22, 163, 74, 0.8)),
+                url('https://www.transparenttextures.com/patterns/grass-and-clover.png');
+            background-color: #16a34a; /* green-600 */
+            border: 4px solid white;
+            position: relative;
+        }
+        .player-slot { cursor: pointer; }
+        .player-slot.filled:hover .remove-btn { opacity: 1; }
+        .remove-btn { opacity: 0; transition: opacity 0.2s ease-in-out; }
+        .tab-btn.active { background-color: #10B981; /* green-500 */ color: white; }
+        
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #10B981; /* Green */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* NEW ICON Player Card Styles v2 */
+        .player-card-pro {
+            width: 10rem; /* 160px */
+            height: 15rem; /* 240px */
+            background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
+            border-radius: 12px;
+            border: 2px solid transparent;
+            position: relative;
+            padding: 3px;
+        }
+        .player-card-pro::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 12px;
+            background: linear-gradient(145deg, #fde68a, #c28212, #fde68a);
+            z-index: 1;
+        }
+        .player-card-inner {
+            background-color: #18181b;
+            border-radius: 10px;
+            height: 100%;
+            width: 100%;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .player-image-container {
+            flex-grow: 1;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .player-image-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 50%;
+            background: linear-gradient(to top, #18181b, transparent);
+        }
+        .player-info-top {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            text-align: center;
+            line-height: 1.1;
+        }
+        .player-info-bottom {
+            padding: 0.5rem;
+            text-align: center;
+            z-index: 3;
+        }
+        .player-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            font-size: 0.75rem;
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+        .stat-value { font-weight: 900; }
+        .stat-label { font-size: 0.65rem; color: #9CA3AF; }
+
+        .player-identity {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+        .player-identity img {
+            width: 1.25rem;
+            height: 1.25rem;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <!-- Auth View -->
+    <div id="auth-view" class="min-h-screen flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-gray-800 rounded-lg shadow-xl p-8">
+            <h1 class="text-3xl font-bold text-center text-green-400 mb-6">أهلاً بك في لعبة مدير فني</h1>
+            <form id="login-form">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-300 mb-2">اسم المستخدم</label>
+                    <input type="text" id="username" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-300 mb-2">كلمة المرور</label>
+                    <input type="password" id="password" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500" required>
+                </div>
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition-colors">تسجيل الدخول / إنشاء حساب</button>
+            </form>
+            <p id="auth-error" class="text-red-500 text-center mt-4"></p>
+        </div>
+    </div>
+    
+    <!-- Team Selection View -->
+    <div id="team-selection-view" class="hidden min-h-screen p-4 md:p-8">
+        <h1 class="text-4xl font-bold text-center text-green-400 mb-8">اختر فريقك لتبدأ مسيرتك التدريبية</h1>
+        <div id="team-list-container" class="space-y-8"></div>
+    </div>
+
+    <!-- Game View -->
+    <div id="game-view" class="hidden container mx-auto p-4">
+        <header class="flex flex-wrap justify-between items-center mb-6 gap-4">
+            <div>
+                <h1 id="team-name-header" class="text-3xl md:text-4xl font-bold text-green-400"></h1>
+                <p id="coach-name-header" class="text-gray-400 mt-1"></p>
+            </div>
+            <div class="flex items-center gap-2">
+                 <button id="train-team-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">🏋️‍♂️ تدريب الفريق</button>
+                 <button id="play-match-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">⚔️ خض مباراة</button>
+                 <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">تسجيل الخروج</button>
+            </div>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 bg-gray-800 rounded-lg p-4 shadow-lg">
+                <div class="flex justify-between items-center mb-4 border-b-2 border-green-500 pb-2">
+                     <h2 class="text-2xl font-bold">التشكيلة الأساسية (4-3-3)</h2>
+                </div>
+                <div id="pitch" class="pitch w-full h-[600px] rounded-lg grid grid-cols-5 grid-rows-6 p-4 gap-2"></div>
+                <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <div class="bg-gray-700 p-3 rounded-lg"><h3 class="text-lg font-semibold text-gray-300">تقييم الفريق</h3><p id="team-rating" class="text-3xl font-bold text-yellow-400">0</p></div>
+                    <div class="bg-gray-700 p-3 rounded-lg"><h3 class="text-lg font-semibold text-gray-300">ميزانية الفريق</h3><p id="budget" class="text-3xl font-bold text-green-400">0 $</p></div>
+                </div>
+            </div>
+            <div class="lg:col-span-1 bg-gray-800 rounded-lg p-4 shadow-lg flex flex-col">
+                <div class="flex border-b-2 border-gray-700 mb-4">
+                    <button id="squad-tab-btn" class="tab-btn flex-1 p-3 font-bold active">الفريق</button>
+                    <button id="market-tab-btn" class="tab-btn flex-1 p-3 font-bold">السوق</button>
+                </div>
+                <div id="squad-tab-content" class="flex-grow h-[650px] overflow-y-auto pr-2">
+                    <div id="squad-list" class="grid grid-cols-2 gap-4"></div>
+                </div>
+                <div id="market-tab-content" class="hidden flex-grow h-[650px] flex flex-col">
+                     <div class="p-3 bg-gray-900 rounded-lg mb-4 space-y-3">
+                         <input type="text" id="market-search-name" placeholder="ابحث بالاسم..." class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                         <div class="grid grid-cols-2 gap-2">
+                            <select id="market-filter-position" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="ALL">كل المراكز</option><option value="GK">حراس مرمى</option><option value="DF">مدافعون</option><option value="MF">خط وسط</option><option value="FW">مهاجمون</option>
+                            </select>
+                             <select id="market-sort" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500">
+                                <option value="default">ترتيب افتراضي</option><option value="price_desc">السعر: الأعلى للأدنى</option><option value="price_asc">السعر: الأدنى للأعلى</option><option value="rating_desc">التقييم: الأعلى للأدنى</option>
+                             </select>
+                         </div>
+                    </div>
+                    <div id="market-list-container" class="flex-grow overflow-y-auto pr-2">
+                        <div id="market-list" class="grid grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Match Result Modal -->
+    <div id="match-modal-overlay" class="hidden fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 modal-overlay opacity-0">
+        <div id="match-modal-content" class="bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl transform scale-95 modal-content">
+            <div class="flex justify-between items-center p-4 border-b border-gray-700">
+                <h3 class="text-2xl font-bold text-green-400">⚔️ نتيجة المباراة</h3>
+                <button id="match-modal-close" class="text-gray-400 hover:text-white text-3xl">&times;</button>
+            </div>
+            <div id="match-modal-body" class="p-6">
+                <div id="match-result-display" class="text-center mb-4">
+                    <p id="match-outcome" class="text-4xl font-black"></p>
+                    <p id="match-score" class="text-6xl font-black my-4"></p>
+                    <p id="match-teams" class="text-xl text-gray-400"></p>
+                </div>
+                <div id="match-summary" class="bg-gray-900 p-4 rounded-lg h-48 overflow-y-auto">
+                    <div id="post-match-loader" class="hidden w-full h-full flex items-center justify-center"><div class="loader"></div></div>
+                    <p id="post-match-analysis" class="text-gray-300 whitespace-pre-wrap">انقر على "تحليل من الخبير" للحصول على تقرير المباراة.</p>
+                </div>
+            </div>
+            <div class="p-4 border-t border-gray-700 flex justify-end">
+                <button id="post-match-analysis-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">تحليل من الخبير (AI)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Popup -->
+    <div id="message-popup" class="hidden fixed top-5 right-5 bg-red-500 text-white py-2 px-4 rounded-lg shadow-lg z-50"><p id="message-text"></p></div>
+
+    <script>
+    // --- DATA & CONFIG ---
+    let db = {
+        players: [
+            // GOALKEEPERS
+            { id: 9, name: 'ت. كورتوا', position: 'GK', rating: 90, price: 60000000, nationality: 'BE', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 14, name: 'أ. بيكر', position: 'GK', rating: 89, price: 58000000, nationality: 'BR', clubId: 'liverpool', imageUrl: null, stats: null }, { id: 16, name: 'ياسين بونو', position: 'GK', rating: 87, price: 40000000, nationality: 'MA', clubId: 'al_hilal', imageUrl: null, stats: null }, { id: 101, name: 'م. تير شتيغن', position: 'GK', rating: 89, price: 55000000, nationality: 'DE', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 102, name: 'إيدرسون', position: 'GK', rating: 88, price: 52000000, nationality: 'BR', clubId: 'man_city', imageUrl: null, stats: null }, { id: 103, name: 'يان أوبلاك', position: 'GK', rating: 88, price: 50000000, nationality: 'SI', clubId: 'atletico', imageUrl: null, stats: null }, { id: 104, name: 'مايك ماينان', position: 'GK', rating: 87, price: 48000000, nationality: 'FR', clubId: 'ac_milan', imageUrl: null, stats: null }, { id: 201, name: 'أ. زغبة', position: 'GK', rating: 78, price: 8000000, nationality: 'DZ', clubId: 'crb', imageUrl: null, stats: null }, { id: 214, name: 'محمد بن شاعة', position: 'GK', rating: 74, price: 4000000, nationality: 'DZ', clubId: 'mco', imageUrl: null, stats: null }, { id: 218, name: 'أ. مجادل', position: 'GK', rating: 75, price: 5000000, nationality: 'DZ', clubId: 'jsk', imageUrl: null, stats: null }, { id: 301, name: 'حارس مرمى حر', position: 'GK', rating: 72, price: 1500000, nationality: 'AR', clubId: null, imageUrl: null, stats: null },
+            // DEFENDERS
+            { id: 5, name: 'ف. فان دايك', position: 'DF', rating: 90, price: 70000000, nationality: 'NL', clubId: 'liverpool', imageUrl: null, stats: null }, { id: 11, name: 'أ. حكيمي', position: 'DF', rating: 86, price: 55000000, nationality: 'MA', clubId: 'psg', imageUrl: null, stats: null }, { id: 15, name: 'ر. دياز', position: 'DF', rating: 88, price: 68000000, nationality: 'PT', clubId: 'man_city', imageUrl: null, stats: null }, { id: 105, name: 'أ. ديفيز', position: 'DF', rating: 85, price: 60000000, nationality: 'CA', clubId: 'bayern', imageUrl: null, stats: null }, { id: 106, name: 'ر. أراوخو', position: 'DF', rating: 86, price: 65000000, nationality: 'UY', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 107, name: 'ويليام ساليبا', position: 'DF', rating: 85, price: 58000000, nationality: 'FR', clubId: 'arsenal', imageUrl: null, stats: null }, { id: 108, name: 'إيدر ميليتاو', position: 'DF', rating: 86, price: 62000000, nationality: 'BR', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 109, name: 'أ. روبرتسون', position: 'DF', rating: 86, price: 50000000, nationality: 'SC', clubId: 'liverpool', imageUrl: null, stats: null }, { id: 110, name: 'كاليدو كوليبالي', position: 'DF', rating: 84, price: 40000000, nationality: 'SN', clubId: 'al_hilal', imageUrl: null, stats: null }, { id: 202, name: 'ع. ماندي', position: 'DF', rating: 79, price: 10000000, nationality: 'DZ', clubId: null, imageUrl: null, stats: null }, { id: 203, name: 'ر. بن سبعيني', position: 'DF', rating: 80, price: 15000000, nationality: 'DZ', clubId: 'dortmund', imageUrl: null, stats: null }, { id: 204, name: 'ي. عطال', position: 'DF', rating: 78, price: 12000000, nationality: 'DZ', clubId: null, imageUrl: null, stats: null }, { id: 212, name: 'باو كوبارسي', position: 'DF', rating: 79, price: 40000000, nationality: 'ES', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 216, name: 'عبد الرحمن حشود', position: 'DF', rating: 77, price: 7000000, nationality: 'DZ', clubId: 'mca', imageUrl: null, stats: null }, { id: 219, name: 'ك. بوعالية', position: 'DF', rating: 76, price: 6000000, nationality: 'DZ', clubId: 'jsk', imageUrl: null, stats: null }, { id: 221, name: 'زين الدين بلعيد', position: 'DF', rating: 79, price: 9000000, nationality: 'DZ', clubId: 'usma', imageUrl: null, stats: null }, { id: 302, name: 'مدافع حر 1', position: 'DF', rating: 73, price: 2000000, nationality: 'DE', clubId: null, imageUrl: null, stats: null }, { id: 303, name: 'مدافع حر 2', position: 'DF', rating: 71, price: 1200000, nationality: 'IT', clubId: null, imageUrl: null, stats: null },
+            // MIDFIELDERS
+            { id: 4, name: 'ك. دي بروين', position: 'MF', rating: 91, price: 80000000, nationality: 'BE', clubId: 'man_city', imageUrl: null, stats: null }, { id: 8, name: 'ل. مودريتش', position: 'MF', rating: 88, price: 50000000, nationality: 'HR', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 13, name: 'ت. كروس', position: 'MF', rating: 88, price: 52000000, nationality: 'DE', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 17, name: 'ج. بيلينجهام', position: 'MF', rating: 89, price: 95000000, nationality: 'GB-ENG', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 111, name: 'رودري', position: 'MF', rating: 89, price: 85000000, nationality: 'ES', clubId: 'man_city', imageUrl: null, stats: null }, { id: 112, name: 'ف. فالفيردي', position: 'MF', rating: 87, price: 75000000, nationality: 'UY', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 113, name: 'بيدري', position: 'MF', rating: 86, price: 70000000, nationality: 'ES', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 114, name: 'ن. كانتي', position: 'MF', rating: 86, price: 45000000, nationality: 'FR', clubId: 'al_ittihad', imageUrl: null, stats: null }, { id: 115, name: 'برناردو سيلفا', position: 'MF', rating: 88, price: 78000000, nationality: 'PT', clubId: 'man_city', imageUrl: null, stats: null }, { id: 116, name: 'م. أوديغارد', position: 'MF', rating: 87, price: 72000000, nationality: 'NO', clubId: 'arsenal', imageUrl: null, stats: null }, { id: 117, name: 'س. ميلينكوفيتش سافيتش', position: 'MF', rating: 86, price: 55000000, nationality: 'RS', clubId: 'al_hilal', imageUrl: null, stats: null }, { id: 205, name: 'إ. بن ناصر', position: 'MF', rating: 84, price: 40000000, nationality: 'DZ', clubId: 'ac_milan', imageUrl: null, stats: null }, { id: 206, name: 'س. فيغولي', position: 'MF', rating: 77, price: 7000000, nationality: 'DZ', clubId: null, imageUrl: null, stats: null }, { id: 207, name: 'يوسف بلايلي', position: 'MF', rating: 81, price: 20000000, nationality: 'DZ', clubId: 'mca', imageUrl: null, stats: null }, { id: 215, name: 'أمين بودبودة', position: 'MF', rating: 75, price: 5000000, nationality: 'DZ', clubId: 'mco', imageUrl: null, stats: null }, { id: 217, name: 'سفيان بن دبكة', position: 'MF', rating: 78, price: 8000000, nationality: 'DZ', clubId: 'mca', imageUrl: null, stats: null }, { id: 220, name: 'س. رايح', position: 'MF', rating: 74, price: 4500000, nationality: 'DZ', clubId: 'jsk', imageUrl: null, stats: null }, { id: 222, name: 'أسامة شيتة', position: 'MF', rating: 77, price: 7500000, nationality: 'DZ', clubId: 'usma', imageUrl: null, stats: null }, { id: 304, name: 'لاعب وسط حر', position: 'MF', rating: 74, price: 2500000, nationality: 'ES', clubId: null, imageUrl: null, stats: null },
+            // FORWARDS
+            { id: 1, name: 'ل. ميسي', position: 'FW', rating: 93, price: 90000000, nationality: 'AR', clubId: null, imageUrl: null, stats: null }, { id: 2, name: 'ك. رونالدو', position: 'FW', rating: 92, price: 85000000, nationality: 'PT', clubId: 'al_nassr', imageUrl: null, stats: null }, { id: 3, name: 'م. صلاح', position: 'FW', rating: 90, price: 75000000, nationality: 'EG', clubId: 'liverpool', imageUrl: null, stats: null }, { id: 6, name: 'ك. مبابي', position: 'FW', rating: 91, price: 120000000, nationality: 'FR', clubId: 'psg', imageUrl: null, stats: null }, { id: 7, name: 'نيمار ج.', position: 'FW', rating: 89, price: 65000000, nationality: 'BR', clubId: 'psg', imageUrl: null, stats: null }, { id: 10, name: 'ر. محرز', position: 'FW', rating: 86, price: 45000000, nationality: 'DZ', clubId: 'al_ahli', imageUrl: null, stats: null }, { id: 12, name: 'إ. هالاند', position: 'FW', rating: 90, price: 110000000, nationality: 'NO', clubId: 'man_city', imageUrl: null, stats: null }, { id: 118, name: 'ف. جونيور', position: 'FW', rating: 89, price: 100000000, nationality: 'BR', clubId: 'real_madrid', imageUrl: null, stats: null }, { id: 119, name: 'هاري كين', position: 'FW', rating: 90, price: 90000000, nationality: 'GB-ENG', clubId: 'bayern', imageUrl: null, stats: null }, { id: 120, name: 'كريم بنزيما', position: 'FW', rating: 90, price: 60000000, nationality: 'FR', clubId: 'al_ittihad', imageUrl: null, stats: null }, { id: 121, name: 'ر. ليفاندوفسكي', position: 'FW', rating: 90, price: 70000000, nationality: 'PL', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 122, name: 'فيكتور أوسيمين', position: 'FW', rating: 88, price: 85000000, nationality: 'NG', clubId: 'napoli', imageUrl: null, stats: null }, { id: 123, name: 'بوكايو ساكا', position: 'FW', rating: 86, price: 80000000, nationality: 'GB-ENG', clubId: 'arsenal', imageUrl: null, stats: null }, { id: 124, name: 'ساديو ماني', position: 'FW', rating: 86, price: 50000000, nationality: 'SN', clubId: 'al_nassr', imageUrl: null, stats: null }, { id: 208, name: 'إ. سليماني', position: 'FW', rating: 78, price: 9000000, nationality: 'DZ', clubId: 'crb', imageUrl: null, stats: null }, { id: 209, name: 'ب. بونجاح', position: 'FW', rating: 79, price: 11000000, nationality: 'DZ', clubId: null, imageUrl: null, stats: null }, { id: 210, name: 'لامين يامال', position: 'FW', rating: 82, price: 65000000, nationality: 'ES', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 211, name: 'رافينيا', position: 'FW', rating: 84, price: 50000000, nationality: 'BR', clubId: 'barcelona', imageUrl: null, stats: null }, { id: 213, name: 'هشام شريف', position: 'FW', rating: 76, price: 6000000, nationality: 'DZ', clubId: 'mco', imageUrl: null, stats: null }, { id: 223, name: 'أيمن محيوص', position: 'FW', rating: 78, price: 85000000, nationality: 'DZ', clubId: 'usma', imageUrl: null, stats: null }, { id: 305, name: 'مهاجم حر', position: 'FW', rating: 75, price: 3000000, nationality: 'FR', clubId: null, imageUrl: null, stats: null },
+        ],
+        teams: [
+            // Team data is the same as before
+            { id: 'crb', name: 'شباب بلوزداد', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2e/CRBlouizdad-star.png', colors: ['red', 'white'], budget: 40000000, initialPlayerIds: [208, 201] }, 
+            { id: 'mca', name: 'مولودية الجزائر', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/fr/8/88/MCA_logo.png', colors: ['green', 'red'], budget: 45000000, initialPlayerIds: [207, 216, 217] }, 
+            { id: 'usma', name: 'اتحاد الجزائر', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/ar/f/f0/%D8%B4%D8%B9%D8%A7%D8%B1_%D8%A7%D8%AA%D8%AD%D8%A7%D8%AF_%D8%A7%D9%84%D8%AC%D8%B2%D8%A7%D8%A6%D8%B1.png', colors: ['red', 'black'], budget: 42000000, initialPlayerIds: [221, 222, 223] }, 
+            { id: 'ess', name: 'وفاق سطيف', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/ar/f/fc/ES_S%C3%A9tif_-_logo.png', budget: 38000000, initialPlayerIds: [] }, 
+            { id: 'jsk', name: 'شبيبة القبائل', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ed/Logo_JS_Kabylie.svg/1200px-Logo_JS_Kabylie.svg.png', budget: 35000000, initialPlayerIds: [218, 219, 220] }, 
+            { id: 'mco', name: 'مولودية وهران', league: 'الرابطة المحترفة الجزائرية الأولى', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/9/92/%D8%B4%D8%B9%D8%A7%D8%B1_%D9%85%D9%88%D9%84%D9%88%D8%AF%D9%8A%D8%A9_%D9%88%D9%87%D8%B1%D8%A7%D9%86.svg/1717px-%D8%B4%D8%B9%D8%A7%D8%B1_%D9%85%D9%88%D9%84%D9%88%D8%AF%D9%8A%D8%A9_%D9%88%D9%87%D8%B1%D8%A7%D9%86.svg.png', colors: ['red', 'white'], budget: 30000000, initialPlayerIds: [213, 214, 215] },
+            { id: 'real_madrid', name: 'ريال مدريد', league: 'الدوري الإسباني', logo: 'https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg', colors: ['white', 'gold'], budget: 150000000, initialPlayerIds: [9, 108, 8, 17, 118, 112] }, { id: 'barcelona', name: 'برشلونة', league: 'الدوري الإسباني', logo: 'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg', colors: ['blue', 'red'], budget: 120000000, initialPlayerIds: [101, 106, 113, 121, 210, 211, 212] }, 
+            { id: 'atletico', name: 'أتلتيكو مدريد', league: 'الدوري الإسباني', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/3/33/%D8%B4%D8%B9%D8%A7%D8%B1_%D8%A3%D8%AA%D9%84%D8%AA%D9%8A%D9%83%D9%88_%D9%85%D8%AF%D8%B1%D9%8A%D8%AF_%282024%29.svg/1200px-%D8%B4%D8%B9%D8%A7%D8%B1_%D8%A3%D8%AA%D9%84%D8%AA%D9%8A%D9%83%D9%88_%D9%85%D8%AF%D8%B1%D9%8A%D8%AF_%282024%29.svg.png', budget: 90000000, initialPlayerIds: [103] },
+            { id: 'man_city', name: 'مانشستر سيتي', league: 'الدوري الإنجليزي الممتاز', logo: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg', colors: ['sky blue', 'white'], budget: 180000000, initialPlayerIds: [102, 15, 4, 111, 115, 12] }, { id: 'liverpool', name: 'ليفربول', league: 'الدوري الإنجليزي الممتاز', logo: 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg', colors: ['red', 'white'], budget: 130000000, initialPlayerIds: [14, 5, 3] }, { id: 'man_united', name: 'مانشستر يونايتد', league: 'الدوري الإنجليزي الممتاز', logo: 'https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg', colors: ['red', 'white'], budget: 125000000, initialPlayerIds: [] }, { id: 'arsenal', name: 'أرسنال', league: 'الدوري الإنجليزي الممتاز', logo: 'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg', colors: ['red', 'white'], budget: 110000000, initialPlayerIds: [107, 116, 123] }, 
+            { id: 'chelsea', name: 'تشيلسي', league: 'الدوري الإنجليزي الممتاز', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/c/cc/Chelsea_FC.svg/800px-Chelsea_FC.svg.png', colors: ['blue', 'white'], budget: 140000000, initialPlayerIds: [] },
+            { id: 'inter_milan', name: 'إنتر ميلان', league: 'الدوري الإيطالي', logo: 'https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg', colors: ['blue', 'black'], budget: 100000000, initialPlayerIds: [] }, { id: 'ac_milan', name: 'إيه سي ميلان', league: 'الدوري الإيطالي', logo: 'https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg', colors: ['red', 'black'], budget: 90000000, initialPlayerIds: [104, 205] }, 
+            { id: 'juventus', name: 'يوفنتوس', league: 'الدوري الإيطالي', logo: 'https://upload.wikimedia.org/wikipedia/commons/5/51/Juventus_FC_2017_logo.png', colors: ['white', 'black'], budget: 105000000, initialPlayerIds: [] }, 
+            { id: 'napoli', name: 'نابولي', league: 'الدوري الإيطالي', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/SSC_Neapel.svg/768px-SSC_Neapel.svg.png', budget: 85000000, initialPlayerIds: [122] },
+            { id: 'bayern', name: 'بايرن ميونخ', league: 'الدوري الألماني', logo: 'https://upload.wikimedia.org/wikipedia/commons/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg', colors: ['red', 'white'], budget: 145000000, initialPlayerIds: [105, 119] }, { id: 'dortmund', name: 'بوروسيا دورتموند', league: 'الدوري الألماني', logo: 'https://upload.wikimedia.org/wikipedia/commons/6/67/Borussia_Dortmund_logo.svg', colors: ['yellow', 'black'], budget: 95000000, initialPlayerIds: [203] },
+            { id: 'psg', name: 'باريس سان جيرمان', league: 'الدوري الفرنسي', logo: 'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg', colors: ['blue', 'red', 'white'], budget: 160000000, initialPlayerIds: [6, 11, 7] },
+            { id: 'al_nassr', name: 'النصر', league: 'دوري روشن السعودي', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/a/ac/Al_Nassr_FC_Logo.svg/1200px-Al_Nassr_FC_Logo.svg.png', colors: ['yellow', 'blue'], budget: 200000000, initialPlayerIds: [2, 124] }, 
+            { id: 'al_hilal', name: 'الهلال', league: 'دوري روشن السعودي', logo: 'https://upload.wikimedia.org/wikipedia/ar/archive/1/12/20230512223726%21Al_Hilal_SFC_logo_2022.svg', colors: ['blue', 'white'], budget: 190000000, initialPlayerIds: [16, 110, 117] }, 
+            { id: 'al_ittihad', name: 'الاتحاد', league: 'دوري روشن السعودي', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/e/e1/Ittihad_logo.svg/1200px-Ittihad_logo.svg.png', colors: ['yellow', 'black'], budget: 170000000, initialPlayerIds: [114, 120] }, 
+            { id: 'al_ahli', name: 'الأهلي', league: 'دوري روشن السعودي', logo: 'https://upload.wikimedia.org/wikipedia/ar/thumb/b/b2/Al-Ahli_Logo.svg/1200px-Al-Ahli_Logo.svg.png', colors: ['white', 'green'], budget: 150000000, initialPlayerIds: [10] },
+        ]
+    };
+
+    const formationSlotsConfig = {
+        'GK': { gridArea: '6 / 3 / 7 / 4', type: 'GK' },
+        'LB': { gridArea: '5 / 1 / 6 / 2', type: 'DF' },
+        'LCB': { gridArea: '5 / 2 / 6 / 3', type: 'DF' },
+        'RCB': { gridArea: '5 / 4 / 6 / 5', type: 'DF' },
+        'RB': { gridArea: '5 / 5 / 6 / 6', type: 'DF' },
+        'CDM': { gridArea: '4 / 3 / 5 / 4', type: 'MF' },
+        'LCM': { gridArea: '3 / 2 / 4 / 3', type: 'MF' },
+        'RCM': { gridArea: '3 / 4 / 5 / 5', type: 'MF' },
+        'LW': { gridArea: '2 / 1 / 3 / 2', type: 'FW' },
+        'RW': { gridArea: '2 / 5 / 3 / 6', type: 'FW' },
+        'ST': { gridArea: '1 / 3 / 2 / 4', type: 'FW' },
+    };
+    
+    // --- STATE & APP LOGIC ---
+    let appState = {};
+    let teamLogoMap = {};
+
+    const authView = document.getElementById('auth-view');
+    const teamSelectionView = document.getElementById('team-selection-view');
+    const gameView = document.getElementById('game-view');
+    const teamListContainerEl = document.getElementById('team-list-container');
+    
+    let imageObserver;
+    let statsObserver;
+
+    function buildTeamLogoMap() {
+        teamLogoMap = db.teams.reduce((acc, team) => {
+            acc[team.id] = team.logo;
+            return acc;
+        }, {});
+    }
+
+    const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 }).format(amount);
+    
+    function showMessage(text, isError = true) {
+         const popup = document.getElementById('message-popup');
+         const messageText = document.getElementById('message-text');
+         messageText.textContent = text;
+         popup.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-lg z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+         popup.classList.remove('hidden');
+         setTimeout(() => popup.classList.add('hidden'), 3000);
+    }
+    
+    const calculateTeamRating = () => Object.values(appState.formation).reduce((acc, player) => acc + (player ? player.rating : 0), 0);
+
+    function renderApp() {
+        if (!appState.user) {
+            authView.classList.remove('hidden'); teamSelectionView.classList.add('hidden'); gameView.classList.add('hidden');
+        } else if (!appState.team) {
+            authView.classList.add('hidden'); teamSelectionView.classList.remove('hidden'); gameView.classList.add('hidden');
+            renderTeamSelection();
+        } else {
+            authView.classList.add('hidden'); teamSelectionView.classList.add('hidden'); gameView.classList.remove('hidden');
+            renderGameView();
+        }
+    }
+
+    function renderTeamSelection() {
+        teamListContainerEl.innerHTML = '';
+        const teamsByLeague = db.teams.reduce((acc, team) => {
+            const league = team.league || 'أخرى';
+            if (!acc[league]) { acc[league] = []; }
+            acc[league].push(team);
+            return acc;
+        }, {});
+        const leagueOrder = [ 'الرابطة المحترفة الجزائرية الأولى', 'دوري روشن السعودي', 'الدوري الإنجليزي الممتاز', 'الدوري الإسباني', 'الدوري الإيطالي', 'الدوري الألماني', 'الدوري الفرنسي' ];
+        for (const league in teamsByLeague) { if (!leagueOrder.includes(league)) { leagueOrder.push(league); } }
+        for (const leagueName of leagueOrder) {
+            if (teamsByLeague[leagueName]) {
+                const leagueContainer = document.createElement('div');
+                const leagueTitle = document.createElement('h2');
+                leagueTitle.className = 'text-2xl font-bold text-green-400 border-r-4 border-green-500 pr-4 mb-4';
+                leagueTitle.textContent = leagueName;
+                leagueContainer.appendChild(leagueTitle);
+                const teamsGrid = document.createElement('div');
+                teamsGrid.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6';
+                teamsByLeague[leagueName].forEach(team => {
+                    const card = document.createElement('div');
+                    card.className = 'team-card bg-gray-800 rounded-lg p-4 text-center cursor-pointer shadow-lg border-2 border-transparent hover:border-green-500';
+                    card.dataset.teamId = team.id;
+                    card.innerHTML = `<div class="w-24 h-24 mx-auto mb-4 rounded-full bg-white flex items-center justify-center p-2"><img src="${team.logo}" onerror="this.onerror=null;this.src='https://placehold.co/100x100/333/FFF?text=Error';" alt="${team.name} Logo" class="team-logo max-w-full max-h-full object-contain"></div><h3 class="text-xl font-bold">${team.name}</h3><p class="text-gray-400">الميزانية: ${formatCurrency(team.budget)}</p>`;
+                    card.addEventListener('click', () => handleSelectTeam(team.id));
+                    teamsGrid.appendChild(card);
+                });
+                leagueContainer.appendChild(teamsGrid);
+                teamListContainerEl.appendChild(leagueContainer);
+            }
+        }
+    }
+    
+    function renderGameView() {
+        document.getElementById('team-name-header').textContent = appState.team.name;
+        document.getElementById('coach-name-header').textContent = `المدرب: ${appState.user.username}`;
+        document.getElementById('budget').textContent = formatCurrency(appState.budget);
+        document.getElementById('team-rating').textContent = calculateTeamRating();
+        
+        const pitchEl = document.getElementById('pitch');
+        pitchEl.innerHTML = '';
+        Object.keys(formationSlotsConfig).forEach(pos => { pitchEl.appendChild(renderFormationSlot(pos, appState.formation[pos])); });
+        
+        const squadTabContent = document.getElementById('squad-tab-content');
+        squadTabContent.innerHTML = ''; 
+
+        if (appState.squad.length === 0) { 
+            squadTabContent.innerHTML = `<p class="text-gray-500 text-center pt-16">لا يوجد لاعبون على الدكة.</p>`;
+        } else {
+            const squadListContainer = document.createElement('div');
+            squadListContainer.id = 'squad-list';
+            squadListContainer.className = 'grid grid-cols-2 gap-4';
+            appState.squad.forEach(p => squadListContainer.appendChild(renderPlayerCard(p, 'squad')));
+            squadTabContent.appendChild(squadListContainer);
+        }
+        
+        renderMarket();
+        observeVisibleCards();
+    }
+
+    function renderMarket() {
+        const marketListContainer = document.getElementById('market-list-container');
+        marketListContainer.scrollTop = 0;
+        const marketListEl = document.getElementById('market-list');
+        const searchName = document.getElementById('market-search-name').value.toLowerCase();
+        const filterPosition = document.getElementById('market-filter-position').value;
+        const sortOrder = document.getElementById('market-sort').value;
+        const ownedPlayerIds = [...appState.squad.map(p => p.id), ...Object.values(appState.formation).filter(p => p).map(p => p.id)];
+        let marketPlayers = db.players.filter(p => !ownedPlayerIds.includes(p.id));
+
+        if (searchName) {
+            marketPlayers = marketPlayers.filter(p => p.name.toLowerCase().includes(searchName));
+        }
+        if (filterPosition !== 'ALL') {
+            marketPlayers = marketPlayers.filter(p => p.position === filterPosition);
+        }
+
+        switch(sortOrder) {
+            case 'price_desc': marketPlayers.sort((a, b) => b.price - a.price); break;
+            case 'price_asc': marketPlayers.sort((a, b) => a.price - b.price); break;
+            case 'rating_desc': marketPlayers.sort((a, b) => b.rating - a.rating); break;
+        }
+
+        marketListEl.innerHTML = '';
+        if(marketPlayers.length === 0) {
+            marketListEl.innerHTML = `<p class="text-gray-500 text-center pt-16 col-span-2">لا يوجد لاعبون يطابقون بحثك.</p>`;
+        } else {
+            marketPlayers.forEach(p => marketListEl.appendChild(renderPlayerCard(p, 'market')));
+        }
+        observeVisibleCards();
+    }
+
+    function renderFormationSlot(position, player) {
+        const config = formationSlotsConfig[position];
+        const slot = document.createElement('div');
+        slot.className = 'player-slot rounded-lg flex items-center justify-center text-center';
+        slot.style.gridArea = config.gridArea;
+        slot.dataset.position = position;
+        if (player) {
+            slot.classList.add('bg-gray-900', 'bg-opacity-75', 'border-2', 'border-yellow-400', 'filled');
+            slot.innerHTML = `<div class="relative w-full h-full p-1 flex flex-col justify-center"><p class="font-bold text-white text-sm">${player.name}</p><p class="text-lg font-black text-yellow-400">${player.rating}</p><p class="text-xs text-gray-300">${position}</p><button data-action="remove" data-position="${position}" class="remove-btn absolute top-0 right-0 -mt-2 -mr-2 bg-red-600 w-6 h-6 rounded-full text-white font-extrabold text-sm flex items-center justify-center">X</button></div>`;
+        } else {
+            slot.classList.add('bg-black', 'bg-opacity-25', 'border-2', 'border-dashed', 'border-gray-400');
+            slot.innerHTML = `<span class="text-gray-300 font-bold text-2xl">${position}</span>`;
+        }
+        return slot;
+    }
+
+    function renderPlayerCard(player, context) {
+        let cardBgClass = 'gold-border';
+       
+        const clubLogoUrl = teamLogoMap[player.clubId] || 'https://placehold.co/40x40/FFFFFF/000000?text=?';
+        const flagUrl = `https://flagcdn.com/w40/${player.nationality.toLowerCase()}.png`;
+
+        const card = document.createElement('div');
+        card.className = `player-card-pro ${cardBgClass} text-white shadow-lg relative`;
+        card.dataset.playerId = player.id;
+        
+        let actionButtons = '';
+        if (context === 'market') {
+            actionButtons = `<button data-action="buy" class="flex-1 mt-2 text-sm bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-2 rounded-md transition-colors" title="شراء اللاعب">شراء</button>`;
+        } else {
+             actionButtons = `<button data-action="assign" class="flex-1 mt-2 text-sm bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-md transition-colors" title="إلى التشكيلة">للتشكيلة</button>`;
+        }
+        
+        const statsHtml = player.stats ? `
+            <div class="stat-value">${player.stats.pac} <span class="stat-label">PAC</span></div>
+            <div class="stat-value">${player.stats.sho} <span class="stat-label">SHO</span></div>
+            <div class="stat-value">${player.stats.pas} <span class="stat-label">PAS</span></div>
+            <div class="stat-value">${player.stats.dri} <span class="stat-label">DRI</span></div>
+            <div class="stat-value">${player.stats.def} <span class="stat-label">DEF</span></div>
+            <div class="stat-value">${player.stats.phy} <span class="stat-label">PHY</span></div>
+        ` : Array(6).fill('<div class="stat-value">--</div>').join('');
+
+        card.innerHTML = `
+            <div class="player-card-inner">
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start text-center mb-1">
+                        <div class="font-bold">
+                            <p class="text-2xl leading-none">${player.rating}</p>
+                            <p class="text-sm">${player.position}</p>
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <img src="${flagUrl}" alt="${player.nationality}" class="w-6 h-4 object-cover rounded-sm">
+                            <img src="${clubLogoUrl}" alt="Club" class="w-6 h-6 object-contain mt-1">
+                        </div>
+                    </div>
+                    <div class="player-image-container" style="background-image: url(${player.imageUrl || ''})">
+                        ${!player.imageUrl ? `<div class="loader !w-8 !h-8 !border-2"></div>` : ''}
+                    </div>
+                    <p class="font-bold text-center text-base leading-tight truncate mt-1">${player.name}</p>
+                </div>
+                <div class="player-stats-grid mt-2">
+                    ${statsHtml}
+                </div>
+                <div class="flex gap-1">
+                    ${actionButtons}
+                </div>
+            </div>
+        `;
+        return card;
+     }
+
+    function saveState() { localStorage.setItem('footballManagerAppState', JSON.stringify(appState)); }
+    function loadState() {
+        const savedState = localStorage.getItem('footballManagerAppState');
+        if (savedState) { appState = JSON.parse(savedState); } 
+        else { appState = { user: null, team: null, budget: 0, squad: [], formation: {} }; }
+    }
+
+    function handleAuth(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        if (!username || !password) { showMessage("الرجاء إدخال اسم المستخدم وكلمة المرور"); return; }
+        const savedState = localStorage.getItem('footballManagerAppState');
+        if (savedState) {
+            const parsed = JSON.parse(savedState);
+            if(parsed.user && parsed.user.username === username && parsed.team) { appState = parsed; } 
+            else { appState.user = { username }; appState.team = null; showMessage(`أهلاً بك يا كوتش ${username}! اختر فريقك الآن.`, false); }
+        } else {
+            appState.user = { username }; appState.team = null;
+            showMessage(`أهلاً بك يا كوتش ${username}! اختر فريقك الآن.`, false);
+        }
+        saveState();
+        renderApp();
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('footballManagerAppState');
+        appState = { user: null, team: null, budget: 0, squad: [], formation: {} };
+        renderApp();
+    }
+    
+    function handleSelectTeam(teamId) {
+        const teamData = db.teams.find(t => t.id === teamId);
+        appState.team = { id: teamData.id, name: teamData.name };
+        appState.budget = teamData.budget;
+        appState.squad = [];
+        appState.formation = {};
+        Object.keys(formationSlotsConfig).forEach(pos => appState.formation[pos] = null);
+        const initialPlayers = db.players.filter(p => teamData.initialPlayerIds.includes(p.id));
+        initialPlayers.forEach(player => {
+            const targetSlotType = player.position;
+            const availableSlot = Object.keys(appState.formation).find(pos => {
+                return formationSlotsConfig[pos].type === targetSlotType && appState.formation[pos] === null;
+            });
+            if (availableSlot) {
+                appState.formation[availableSlot] = player;
+            } else {
+                appState.squad.push(player);
+            }
+        });
+        saveState();
+        renderApp();
+    }
+    
+    function handleBuy(playerId) {
+        const player = db.players.find(p => p.id === playerId);
+        if (!player) return;
+        if (appState.budget < player.price) { showMessage('الميزانية لا تكفي!'); return; }
+        appState.budget -= player.price;
+        player.clubId = appState.team.id; 
+        appState.squad.push(player);
+        saveState();
+        renderGameView();
+        showMessage(`تم شراء ${player.name} بنجاح!`, false);
+    }
+
+    function handleAssign(playerId) {
+        const player = appState.squad.find(p => p.id === playerId);
+        if (!player) return;
+        const targetSlotType = player.position;
+        const availableSlot = Object.keys(appState.formation).find(pos => formationSlotsConfig[pos].type === targetSlotType && appState.formation[pos] === null);
+        if (!availableSlot) { showMessage(`لا يوجد مكان شاغر للاعب ${player.position} في التشكيلة!`); return; }
+        appState.formation[availableSlot] = player;
+        appState.squad = appState.squad.filter(p => p.id !== playerId);
+        saveState();
+        renderGameView();
+    }
+
+    function handleRemove(position) {
+        const player = appState.formation[position];
+        if (!player) return;
+        appState.squad.push(player);
+        appState.formation[position] = null;
+        saveState();
+        renderGameView();
+    }
+
+    function handleTrainTeam() {
+        const trainingCost = 2000000;
+        if (appState.budget < trainingCost) {
+            showMessage("الميزانية لا تكفي للتدريب!");
+            return;
+        }
+
+        appState.budget -= trainingCost;
+
+        const allPlayerRefs = [...appState.squad, ...Object.values(appState.formation).filter(p => p)];
+        if (allPlayerRefs.length === 0) {
+             showMessage("لا يوجد لاعبون لتدريبهم!");
+             return;
+        }
+
+        let improvedPlayers = [];
+        // Improve 1 to 3 players randomly
+        const numberOfImprovements = Math.floor(Math.random() * 3) + 1;
+
+        for(let i=0; i<numberOfImprovements; i++) {
+            const playerToImprove = allPlayerRefs[Math.floor(Math.random() * allPlayerRefs.length)];
+            if(playerToImprove && playerToImprove.rating < 99) {
+                 playerToImprove.rating++;
+                 if(!improvedPlayers.find(p => p.id === playerToImprove.id)) {
+                    improvedPlayers.push(playerToImprove);
+                 }
+            }
+        }
+        
+        if(improvedPlayers.length > 0) {
+            const improvedNames = improvedPlayers.map(p => p.name).join(', ');
+            showMessage(`تدريب ناجح! تحسن تقييم: ${improvedNames}`, false);
+        } else {
+            showMessage("لم يتحسن أداء أي لاعب في هذه الحصة التدريبية.");
+        }
+        
+        saveState();
+        renderGameView();
+    }
+    
+    function handlePlayMatch() {
+        const playersInFormation = Object.values(appState.formation).filter(p => p !== null).length;
+        if (playersInFormation < 11) {
+            showMessage("يجب إكمال التشكيلة (11 لاعب) قبل خوض مباراة!");
+            return;
+        }
+
+        const opponent = db.teams.filter(t => t.id !== appState.team.id)[Math.floor(Math.random() * (db.teams.length - 1))];
+        const opponentRating = opponent.initialPlayerIds.reduce((sum, pId) => {
+            const player = db.players.find(p => p.id === pId);
+            return sum + (player ? player.rating : 0);
+        }, 0) / 11 * 10; // Simple opponent rating calculation
+
+        const myTeamRating = calculateTeamRating();
+
+        // Simple match simulation logic
+        const scoreFactor = 5;
+        const myScore = Math.floor((myTeamRating / (myTeamRating + opponentRating)) * scoreFactor + Math.random() * 2);
+        const opponentScore = Math.floor((opponentRating / (myTeamRating + opponentRating)) * scoreFactor + Math.random() * 2);
+
+        let outcome = 'تعادل';
+        let outcomeColor = 'text-yellow-400';
+        let prize = 500000;
+
+        if (myScore > opponentScore) {
+            outcome = 'فوز!';
+            outcomeColor = 'text-green-400';
+            prize = 2000000;
+        } else if (opponentScore > myScore) {
+            outcome = 'خسارة';
+            outcomeColor = 'text-red-500';
+            prize = 100000;
+        }
+        appState.budget += prize;
+        showMessage(`حصلت على ${formatCurrency(prize)} مكافأة المباراة!`, false);
+        saveState();
+        renderGameView();
+
+        // Show match modal
+        document.getElementById('match-outcome').textContent = outcome;
+        document.getElementById('match-outcome').className = `text-4xl font-black ${outcomeColor}`;
+        document.getElementById('match-score').textContent = `${myScore} - ${opponentScore}`;
+        document.getElementById('match-teams').textContent = `${appState.team.name} ضد ${opponent.name}`;
+        document.getElementById('post-match-analysis').textContent = `انقر على "تحليل من الخبير" للحصول على تقرير المباراة.`;
+        document.getElementById('post-match-analysis-btn').onclick = () => getPostMatchAnalysis(myScore, opponentScore, opponent.name);
+        
+        const matchModalOverlay = document.getElementById('match-modal-overlay');
+        matchModalOverlay.classList.remove('hidden');
+        setTimeout(() => matchModalOverlay.classList.remove('opacity-0'), 10);
+    }
+    
+    async function getPostMatchAnalysis(myScore, opponentScore, opponentName) {
+        const loader = document.getElementById('post-match-loader');
+        const analysisEl = document.getElementById('post-match-analysis');
+        const analysisBtn = document.getElementById('post-match-analysis-btn');
+
+        loader.classList.remove('hidden');
+        analysisEl.textContent = '';
+        analysisBtn.disabled = true;
+
+        const formationPlayers = Object.values(appState.formation).map(p => p.name).join(', ');
+        
+        const prompt = `أنت صحفي رياضي خبير. أكتب تقريراً صحفياً قصيراً عن مباراة كرة قدم انتهت للتو.
+        - فريقي: ${appState.team.name}
+        - الفريق الخصم: ${opponentName}
+        - النتيجة النهائية: ${appState.team.name} ${myScore} - ${opponentScore} ${opponentName}
+        - تشكيلة فريقي الأساسية: ${formationPlayers}
+        
+        في تقريرك، سلط الضوء على نتيجة المباراة، وأداء الفريق بشكل عام، ومن كان بإمكانه أن يكون نجم المباراة من تشكيلتي. اجعل الأسلوب احترافياً ومثيراً للاهتمام.`;
+
+        const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }] };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
+            const result = await response.json();
+            let text = "لم يتمكن الخبير من تحليل المباراة.";
+            if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
+                text = result.candidates[0].content.parts[0].text;
+            }
+            analysisEl.textContent = text;
+        } catch(error) {
+            console.error("Post-match analysis failed:", error);
+            analysisEl.textContent = "حدث خطأ أثناء الاتصال بالخبير التحليلي.";
+        } finally {
+            loader.classList.add('hidden');
+        }
+    }
+
+    async function handleGeneratePlayerImage(playerId, cardElement) {
+        const player = db.players.find(p => p.id === playerId);
+        if (!player || player.imageUrl) return;
+
+        const loader = cardElement.querySelector('.loader');
+        if (loader) loader.style.display = 'block';
+        
+        const team = db.teams.find(t => t.id === player.clubId);
+        const teamColors = team && team.colors ? team.colors.join(', ') : 'black and white';
+        const positionTerm = player.position === 'GK' ? 'goalkeeper' : (player.position === 'DF' ? 'defender' : (player.position === 'MF' ? 'midfielder' : 'forward'));
+        
+        const prompt = `Dramatic artistic action silhouette of a football ${positionTerm}, dynamic pose, minimalist style. Team colors are ${teamColors}. Simple, clean background.`;
+
+        const payload = { instances: [{ prompt: prompt }], parameters: { "sampleCount": 1} };
+        const apiKey = ""; 
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                let errorBody;
+                try { errorBody = await response.json(); } catch (e) { errorBody = { error: { message: response.statusText }}; }
+                throw new Error(errorBody?.error?.message || `HTTP ${response.status}`);
+            }
+            
+            const result = await response.json();
+            if (result.predictions && result.predictions[0].bytesBase64Encoded) {
+                const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                player.imageUrl = imageUrl;
+                cardElement.querySelector('.player-image-container').style.backgroundImage = `url(${imageUrl})`;
+                if (loader) loader.style.display = 'none';
+                saveState();
+            } else {
+                throw new Error("Image generation failed, no image data received.");
+            }
+        } catch (error) {
+            console.error("Image generation failed:", error.message);
+            if (loader) loader.style.display = 'none';
+        }
+    }
+    
+    async function handleGeneratePlayerStats(playerId, cardElement) {
+        const player = db.players.find(p => p.id === playerId);
+        if (!player || player.stats) return;
+
+        const prompt = `As a football data expert, provide realistic player stats (PAC, SHO, PAS, DRI, DEF, PHY) for ${player.name}, a ${player.position} with an overall rating of ${player.rating}. Respond only with a JSON object.`;
+        const payload = {
+            contents: [{ role: "user", parts: [{ text: prompt }] }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: "OBJECT",
+                    properties: { "PAC": { "type": "NUMBER" }, "SHO": { "type": "NUMBER" }, "PAS": { "type": "NUMBER" }, "DRI": { "type": "NUMBER" }, "DEF": { "type": "NUMBER" }, "PHY": { "type": "NUMBER" } },
+                    required: ["PAC", "SHO", "PAS", "DRI", "DEF", "PHY"]
+                }
+            }
+        };
+        const apiKey = "";
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+        try {
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                let errorBody;
+                try { errorBody = await response.json(); } catch (e) { errorBody = { error: { message: response.statusText }}; }
+                throw new Error(errorBody?.error?.message || `HTTP ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0].text) {
+                const stats = JSON.parse(result.candidates[0].content.parts[0].text);
+                player.stats = stats;
+                
+                const statsGrid = cardElement.querySelector('.player-stats-grid');
+                if (statsGrid) {
+                    statsGrid.innerHTML = `
+                        <div class="stat-value">${stats.PAC} <span class="stat-label">PAC</span></div>
+                        <div class="stat-value">${stats.SHO} <span class="stat-label">SHO</span></div>
+                        <div class="stat-value">${stats.PAS} <span class="stat-label">PAS</span></div>
+                        <div class="stat-value">${stats.DRI} <span class="stat-label">DRI</span></div>
+                        <div class="stat-value">${stats.DEF} <span class="stat-label">DEF</span></div>
+                        <div class="stat-value">${stats.PHY} <span class="stat-label">PHY</span></div>
+                    `;
+                }
+                saveState();
+            } else {
+                throw new Error("Stats generation failed.");
+            }
+        } catch (error) {
+            console.error("Stats generation failed:", error.message);
+        }
+    }
+    
+    function setupObservers() {
+        const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+
+        imageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach((entry, index) => { 
+                if (entry.isIntersecting) {
+                    const cardElement = entry.target;
+                    const playerId = parseFloat(cardElement.dataset.playerId);
+                    setTimeout(() => {
+                        handleGeneratePlayerImage(playerId, cardElement);
+                    }, index * 250); 
+                    observer.unobserve(cardElement);
+                }
+            });
+        }, options);
+        
+        statsObserver = new IntersectionObserver((entries, observer) => {
+             entries.forEach((entry, index) => { 
+                if (entry.isIntersecting) {
+                    const cardElement = entry.target;
+                    const playerId = parseFloat(cardElement.dataset.playerId);
+                     setTimeout(() => {
+                        handleGeneratePlayerStats(playerId, cardElement);
+                    }, index * 250);
+                    observer.unobserve(cardElement);
+                }
+            });
+        }, options);
+    }
+    
+    function observeVisibleCards() {
+        const cardsToObserve = document.querySelectorAll('.player-card-pro');
+        cardsToObserve.forEach(card => {
+             const playerId = parseFloat(card.dataset.playerId);
+             const player = db.players.find(p => p.id === playerId);
+             if (player) {
+                if (!player.imageUrl) {
+                    imageObserver.observe(card);
+                }
+                 if (!player.stats) {
+                    statsObserver.observe(card);
+                 }
+             }
+        });
+    }
+
+
+    // --- EVENT LISTENERS ---
+    document.getElementById('login-form').addEventListener('submit', handleAuth);
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    
+    document.getElementById('squad-tab-btn').addEventListener('click', () => { document.getElementById('squad-tab-content').classList.remove('hidden'); document.getElementById('market-tab-content').classList.add('hidden'); document.getElementById('squad-tab-btn').classList.add('active'); document.getElementById('market-tab-btn').classList.remove('active'); });
+    document.getElementById('market-tab-btn').addEventListener('click', () => { document.getElementById('squad-tab-content').classList.add('hidden'); document.getElementById('market-tab-content').classList.remove('hidden'); document.getElementById('squad-tab-btn').classList.remove('active'); document.getElementById('market-tab-btn').classList.add('active'); });
+    
+    gameView.addEventListener('click', e => {
+        const button = e.target.closest('button');
+        if (!button) return;
+        const action = button.dataset.action;
+        const cardElement = button.closest('.player-card-pro');
+        const playerId = cardElement ? parseFloat(cardElement.dataset.playerId) : null;
+        
+        if (action === 'buy' && playerId) handleBuy(playerId);
+        if (action === 'assign' && playerId) handleAssign(playerId);
+        if (action === 'remove') handleRemove(button.dataset.position);
+    });
+    
+    document.getElementById('train-team-btn').addEventListener('click', handleTrainTeam);
+    document.getElementById('play-match-btn').addEventListener('click', handlePlayMatch);
+
+    document.getElementById('match-modal-close').addEventListener('click', () => {
+        const matchModalOverlay = document.getElementById('match-modal-overlay');
+        matchModalOverlay.classList.add('opacity-0');
+        setTimeout(() => matchModalOverlay.classList.add('hidden'), 300);
+    });
+
+    document.getElementById('market-search-name').addEventListener('input', renderMarket);
+    document.getElementById('market-filter-position').addEventListener('change', renderMarket);
+    document.getElementById('market-sort').addEventListener('change', renderMarket);
+    
+    document.addEventListener('DOMContentLoaded', () => { 
+        setupObservers();
+        buildTeamLogoMap();
+        loadState(); 
+        renderApp(); 
+    });
+    </script>
+
+</body>
+</html>
